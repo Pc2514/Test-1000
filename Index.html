@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>深層心理診断</title>
+
+<style>
+body {
+    background: black;
+    color: #0f0;
+    font-family: monospace;
+    text-align: center;
+    margin: 0;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* テキスト */
+h1 {
+    font-size: 5vw;
+}
+
+/* HPバー */
+#hpContainer {
+    width: 80%;
+    height: 20px;
+    border: 2px solid #0f0;
+    margin: 20px auto;
+}
+#hpBar {
+    height: 100%;
+    width: 100%;
+    background: #0f0;
+}
+
+/* ボタン */
+button {
+    width: 80%;
+    max-width: 300px;
+    margin: 10px auto;
+    padding: 15px;
+    font-size: 18px;
+    background: black;
+    color: #0f0;
+    border: 2px solid #0f0;
+    border-radius: 10px;
+    transition: 0.2s;
+}
+
+button:active {
+    transform: scale(0.95);
+}
+
+/* 崩壊演出 */
+.glitch {
+    color: red;
+    text-shadow: 0 0 10px red;
+}
+
+/* 点滅 */
+@keyframes pulse {
+    0% { background: black; }
+    50% { background: #200; }
+    100% { background: black; }
+}
+
+body.pulse {
+    animation: pulse 0.6s infinite;
+}
+</style>
+</head>
+
+<body>
+
+<h1 id="text"></h1>
+
+<div id="hpContainer">
+<div id="hpBar"></div>
+</div>
+
+<div id="choices"></div>
+
+<script>
+let stage = 0;
+let hp = 100;
+let name = "あなた";
+
+const time = new Date().getHours() + "時" + new Date().getMinutes() + "分";
+
+const questions = [
+"開始しますか？",
+"人を信じますか？",
+"後ろに気配を感じたら？",
+"夜中に音がしたら？",
+"知らない番号から電話が来たら？",
+"誰かに見られている気がする？",
+"助けを求める声が聞こえたら？",
+"ここまで来た理由は？",
+"このまま続けますか？",
+"最後です。本当にいい？"
+];
+
+/* タイピング */
+function typeText(text, callback){
+    const el = document.getElementById("text");
+    el.innerHTML = "";
+    let i = 0;
+    function typing(){
+        if(i < text.length){
+            el.innerHTML += text.charAt(i);
+            i++;
+            setTimeout(typing, 25);
+        } else {
+            if(callback) callback();
+        }
+    }
+    typing();
+}
+
+function updateHP(){
+    const bar = document.getElementById("hpBar");
+    bar.style.width = hp + "%";
+
+    if(hp < 40){
+        bar.style.background = "red";
+        document.body.classList.add("pulse");
+    }
+}
+
+/* ボタン */
+function showChoices(){
+    const choices = document.getElementById("choices");
+    choices.innerHTML = "";
+
+    ["はい","いいえ"].forEach(text => {
+        const btn = document.createElement("button");
+        btn.innerText = text;
+
+        // トラップ：位置ズレ
+        btn.style.marginLeft = Math.random()*30 + "px";
+
+        btn.onclick = () => {
+            hp -= Math.random()*10+5;
+            if(hp < 0) hp = 0;
+            updateHP();
+            next();
+        };
+
+        choices.appendChild(btn);
+    });
+}
+
+function next(){
+    if(stage < questions.length){
+
+        let q = questions[stage];
+
+        if(stage === 2){
+            name = prompt("名前を入力してください") || "あなた";
+        }
+
+        if(stage === 4){
+            q = name + "さん、今" + time + "ですよね？";
+        }
+
+        if(stage === 6){
+            q = "あなたの選択は記録されています";
+        }
+
+        if(stage === 8){
+            q = "ここまで来た理由、わかっています";
+        }
+
+        typeText(q, showChoices);
+
+        stage++;
+
+    } else {
+        end();
+    }
+}
+
+function end(){
+    typeText("解析中...", () => {
+
+        setTimeout(() => {
+            document.getElementById("text").innerHTML = "<span class='glitch'>異常検知</span>";
+
+            setTimeout(() => {
+                document.body.innerHTML = `
+                <h1 class="glitch">
+                ${name}さんは「最後までやめられないタイプ」です
+                </h1>
+                <iframe width="90%" height="250"
+                src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1"
+                allow="autoplay"></iframe>
+                `;
+            }, 1500);
+
+        }, 1500);
+    });
+}
+
+next();
+</script>
+
+</body>
+</html>
