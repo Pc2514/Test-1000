@@ -17,15 +17,21 @@ body {
     flex-direction: column;
     justify-content: center;
     height: 100vh;
-    overflow: hidden;
 }
 
 /* テキスト */
-h1 {
-    font-size: 5vw;
+h1 { font-size: 5vw; }
+
+/* 時間表示 */
+#clock {
+    position: fixed;
+    top: 10px;
+    right: 15px;
+    font-size: 14px;
+    color: #0f0;
 }
 
-/* HPバー */
+/* HP */
 #hpContainer {
     width: 80%;
     height: 20px;
@@ -49,34 +55,19 @@ button {
     color: #0f0;
     border: 2px solid #0f0;
     border-radius: 10px;
-    transition: 0.2s;
 }
 
-button:active {
-    transform: scale(0.95);
-}
-
-/* 崩壊演出 */
+/* glitch */
 .glitch {
     color: red;
     text-shadow: 0 0 10px red;
-}
-
-/* 点滅 */
-@keyframes pulse {
-    0% { background: black; }
-    50% { background: #200; }
-    100% { background: black; }
-}
-
-body.pulse {
-    animation: pulse 0.6s infinite;
 }
 </style>
 </head>
 
 <body>
 
+<div id="clock"></div>
 <h1 id="text"></h1>
 
 <div id="hpContainer">
@@ -89,8 +80,33 @@ body.pulse {
 let stage = 0;
 let hp = 100;
 let name = "あなた";
+let choicesLog = [];
 
-const time = new Date().getHours() + "時" + new Date().getMinutes() + "分";
+/* 時間表示 */
+function updateClock(){
+    const now = new Date();
+    const time = now.getHours()+"時"+now.getMinutes()+"分"+now.getSeconds()+"秒";
+    document.getElementById("clock").innerText = time;
+}
+setInterval(updateClock,1000);
+
+/* 戻るボタン無効 */
+history.pushState(null, null, location.href);
+window.onpopstate = function(){
+    history.go(1);
+};
+
+/* 離脱警告 */
+window.onbeforeunload = function(){
+    return "本当に離れますか？";
+};
+
+/* フルスクリーン */
+document.body.onclick = () => {
+    if(document.documentElement.requestFullscreen){
+        document.documentElement.requestFullscreen();
+    }
+};
 
 const questions = [
 "開始しますか？",
@@ -123,16 +139,10 @@ function typeText(text, callback){
 }
 
 function updateHP(){
-    const bar = document.getElementById("hpBar");
-    bar.style.width = hp + "%";
-
-    if(hp < 40){
-        bar.style.background = "red";
-        document.body.classList.add("pulse");
-    }
+    document.getElementById("hpBar").style.width = hp + "%";
 }
 
-/* ボタン */
+/* 選択肢 */
 function showChoices(){
     const choices = document.getElementById("choices");
     choices.innerHTML = "";
@@ -141,14 +151,17 @@ function showChoices(){
         const btn = document.createElement("button");
         btn.innerText = text;
 
-        // トラップ：位置ズレ
-        btn.style.marginLeft = Math.random()*30 + "px";
-
         btn.onclick = () => {
-            hp -= Math.random()*10+5;
+            choicesLog.push(text);
+
+            hp -= (text === "はい") ? 12 : 6;
             if(hp < 0) hp = 0;
+
             updateHP();
-            next();
+
+            // 一瞬消す（不安演出）
+            choices.innerHTML = "";
+            setTimeout(next, 300);
         };
 
         choices.appendChild(btn);
@@ -160,24 +173,24 @@ function next(){
 
         let q = questions[stage];
 
-        if(stage === 2){
+        if(stage === 1){
             name = prompt("名前を入力してください") || "あなた";
         }
 
-        if(stage === 4){
-            q = name + "さん、今" + time + "ですよね？";
+        if(stage === 3){
+            const now = new Date();
+            q = name + "さん、今" + now.getHours()+"時"+now.getMinutes()+"分ですよね？";
         }
 
         if(stage === 6){
-            q = "あなたの選択は記録されています";
+            q = "あなたの選択はすべて記録されています";
         }
 
         if(stage === 8){
-            q = "ここまで来た理由、わかっています";
+            q = "もう戻れません";
         }
 
         typeText(q, showChoices);
-
         stage++;
 
     } else {
@@ -186,27 +199,29 @@ function next(){
 }
 
 function end(){
-    typeText("解析中...", () => {
+    typeText("最終解析中...", () => {
 
         setTimeout(() => {
-            document.getElementById("text").innerHTML = "<span class='glitch'>異常検知</span>";
+
+            const yesCount = choicesLog.filter(c => c === "はい").length;
+
+            let result = (yesCount > 5)
+                ? "最後まで抜け出せないタイプ"
+                : "疑いながらも従ってしまうタイプ";
+
+            document.getElementById("text").innerHTML =
+            "<span class='glitch'>" + name + "さんは「" + result + "」です</span>";
 
             setTimeout(() => {
-                document.body.innerHTML = `
-                <h1 class="glitch">
-                ${name}さんは「最後までやめられないタイプ」です
-                </h1>
-                <iframe width="90%" height="250"
-                src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1"
-                allow="autoplay"></iframe>
-                `;
-            }, 1500);
+                window.location.href = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
+            }, 2500);
 
         }, 1500);
     });
 }
 
 next();
+updateHP();
 </script>
 
 </body>
